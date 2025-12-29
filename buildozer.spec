@@ -12,7 +12,11 @@ android.minapi = 21
 android.sdk = 31
 android.ndk = 25b
 android.arch = arm64-v8a
-android.permissions = INTERNET,ACCESS_NETWORK_STATE
+android.permissions = INTERNET,ACCESS_NETWORK_STATE,SYSTEM_ALERT_WINDOW
 android.api_31_android = True
 android.enable_androidx = True
 android.use_legacy_gradle_env = True
+
+[buildozer]
+log_level = 2
+warn_on_root = 1

@@ -10,7 +10,11 @@ from kivy.uix.scrollview import ScrollView
 from kivy.clock import Clock
 from kivy.utils import get_color_from_hex
 from kivy.properties import StringProperty
-from mobile_app.widgets.floating import FloatingWidget
+
+try:
+    from mobile_app.widgets.floating import FloatingWidget
+except ImportError:
+    FloatingWidget = None
 
 
 Window.size = (360, 640)
@@ -236,24 +240,29 @@ class LingbiaoMobileApp(App):
         return sm
 
     def on_start(self):
-        from android.permissions import request_permissions, Permission
-        from android import android_api_level
-        request_permissions([
-            Permission.INTERNET,
-            Permission.ACCESS_NETWORK_STATE
-        ])
-        if android_api_level() >= 23:
-            from android.permissions import request_permissions
+        try:
+            from android.permissions import request_permissions, Permission
+            from android import android_api_level
             request_permissions([
-                Permission.SYSTEM_ALERT_WINDOW
+                Permission.INTERNET,
+                Permission.ACCESS_NETWORK_STATE
             ])
+            if android_api_level() >= 23:
+                request_permissions([
+                    Permission.SYSTEM_ALERT_WINDOW
+                ])
+        except ImportError:
+            pass
         Clock.schedule_once(self._add_floating_widget, 1)
 
     def _add_floating_widget(self, dt):
-        if not self._floating:
-            self._floating = FloatingWidget(app_instance=self)
-            Window.add_widget(self._floating)
-            self.floating_widget = self._floating
+        if not self._floating and FloatingWidget:
+            try:
+                self._floating = FloatingWidget(app_instance=self)
+                Window.add_widget(self._floating)
+                self.floating_widget = self._floating
+            except Exception as e:
+                pass
 
     def on_floating_action(self, action):
         if action == 'query':
