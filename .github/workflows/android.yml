@@ -30,7 +30,19 @@ jobs:
           autoconf automake libtool pkg-config \
           zlib1g-dev libncurses5-dev libncursesw5-dev \
           libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev \
-          libsdl2-ttf-dev
+          libsdl2-ttf-dev wget unzip
+
+    - name: Install Android SDK licenses
+      run: |
+        mkdir -p $HOME/android-sdk/cmdline-tools
+        cd $HOME/android-sdk/cmdline-tools
+        wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+        unzip -q commandlinetools-linux-11076708_latest.zip
+        mv cmdline-tools latest
+        export ANDROID_HOME=$HOME/android-sdk
+        export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
+        yes | sdkmanager --licenses || true
+        sdkmanager "platform-tools" "platforms;android-31" "build-tools;34.0.0"
     
     - name: Build APK
       run: |
