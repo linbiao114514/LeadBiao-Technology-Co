@@ -31,11 +31,6 @@ jobs:
           zlib1g-dev libncurses5-dev libncursesw5-dev \
           libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev \
           libsdl2-ttf-dev
-
-    - name: Accept Android SDK licenses
-      run: |
-        yes | sdkmanager --licenses || true
-        sdkmanager "platforms;android-31" "build-tools;34.0.0"
     
     - name: Build APK
       run: |
@@ -43,6 +38,7 @@ jobs:
       env:
         BUILDZOOZER_USERNAME: ${{ secrets.BUILDZOOZER_USERNAME }}
         BUILDZOOZER_PASSWORD: ${{ secrets.BUILDZOOZER_PASSWORD }}
+        BUILDZOOZER_ACCEPT_ANDROID_SDK_LICENSES: "1"
     
     - name: Upload APK
       uses: actions/upload-artifact@v4
