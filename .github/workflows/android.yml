@@ -30,40 +30,23 @@ jobs:
           autoconf automake libtool pkg-config \
           zlib1g-dev libncurses5-dev libncursesw5-dev \
           libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev \
-          libsdl2-ttf-dev wget unzip
-
-    - name: Install Android SDK licenses
-      run: |
-        mkdir -p $HOME/android-sdk/cmdline-tools
-        cd $HOME/android-sdk/cmdline-tools
-        wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
-        unzip -q commandlinetools-linux-11076708_latest.zip
-        mv cmdline-tools latest
-        export ANDROID_HOME=$HOME/android-sdk
-        export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
-        yes | sdkmanager --licenses || true
-        sdkmanager "platform-tools" "platforms;android-31" "build-tools;34.0.0"
-        mkdir -p ~/.buildozer/android/platform/android-sdk
-        cp -r $HOME/android-sdk/* ~/.buildozer/android/platform/android-sdk/
-
-    - name: Install Apache ANT
-      run: |
-        wget -q https://dlcdn.apache.org/ant/binaries/apache-ant-1.10.15-bin.tar.gz
-        tar -xzf apache-ant-1.10.15-bin.tar.gz -C $HOME
-        echo "$HOME/apache-ant-1.10.15/bin" >> $GITHUB_PATH
-        echo "ANT_HOME=$HOME/apache-ant-1.10.15" >> $GITHUB_ENV
+          libsdl2-ttf-dev
     
-    - name: Build APK
+    - name: Accept Android SDK licenses
       run: |
-        buildozer android debug
-      env:
-        BUILDZOOZER_USERNAME: ${{ secrets.BUILDZOOZER_USERNAME }}
-        BUILDZOOZER_PASSWORD: ${{ secrets.BUILDZOOZER_PASSWORD }}
-        BUILDZOOZER_ACCEPT_ANDROID_SDK_LICENSES: "1"
+        mkdir -p $HOME/.android
+        touch $HOME/.android/repositories.cfg
+        yes | /opt/hostedtoolcache/Python/3.11.14/x64/bin/python -m pip install --user --upgrade buildozer
+        yes | buildozer android debug --verbose 2>&1 | tee build.log || true
     
     - name: Upload APK
+      if: success()
       uses: actions/upload-artifact@v4
       with:
         name: lingbiao-mobile-debug.apk
         path: bin/*.apk
         retention-days: 5
+    
+    - name: Show build log on failure
+      if: failure()
+      run: cat build.log
