@@ -43,6 +43,13 @@ jobs:
         export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
         yes | sdkmanager --licenses || true
         sdkmanager "platform-tools" "platforms;android-31" "build-tools;34.0.0"
+
+    - name: Install Apache ANT
+      run: |
+        wget -q https://dlcdn.apache.org/ant/binaries/apache-ant-1.10.15-bin.tar.gz
+        tar -xzf apache-ant-1.10.15-bin.tar.gz -C $HOME
+        echo "$HOME/apache-ant-1.10.15/bin" >> $GITHUB_PATH
+        echo "ANT_HOME=$HOME/apache-ant-1.10.15" >> $GITHUB_ENV
     
     - name: Build APK
       run: |
