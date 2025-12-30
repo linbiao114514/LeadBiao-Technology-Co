@@ -37,7 +37,15 @@ jobs:
         mkdir -p $HOME/.android
         touch $HOME/.android/repositories.cfg
         yes | /opt/hostedtoolcache/Python/3.11.14/x64/bin/python -m pip install --user --upgrade buildozer
-        yes | buildozer android debug --verbose 2>&1 | tee build.log || true
+        buildozer android debug --verbose > build.log 2>&1
+        echo "=== BUILD LOG END ==="
+        ls -la bin/ || echo "bin directory not found"
+        find . -name "*.apk" -type f || echo "No APK files found"
+        if [ ! -d "bin" ] || [ -z "$(ls -A bin 2>/dev/null)" ]; then
+          echo "ERROR: No APK generated"
+          cat build.log
+          exit 1
+        fi
     
     - name: Upload APK
       if: success()
