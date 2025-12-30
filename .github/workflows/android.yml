@@ -32,11 +32,8 @@ jobs:
           libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev \
           libsdl2-ttf-dev
     
-    - name: Accept Android SDK licenses
+    - name: Build APK
       run: |
-        mkdir -p $HOME/.android
-        touch $HOME/.android/repositories.cfg
-        yes | /opt/hostedtoolcache/Python/3.11.14/x64/bin/python -m pip install --user --upgrade buildozer
         buildozer android debug --verbose > build.log 2>&1
         echo "=== BUILD LOG END ==="
         ls -la bin/ || echo "bin directory not found"
