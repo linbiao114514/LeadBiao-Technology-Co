@@ -34,14 +34,39 @@ jobs:
     
     - name: Build APK
       run: |
-        buildozer android debug --verbose > build.log 2>&1
+        echo "Starting build process..."
+        echo "Current directory: $(pwd)"
+        echo "Python version: $(python --version)"
+        echo "Pip version: $(pip --version)"
+        echo "Buildozer version: $(buildozer --version)"
+        echo "Creating temporary build directory..."
+        mkdir -p build_temp
+        cd build_temp
+        echo "Initializing buildozer..."
+        buildozer init
+        echo "Copying project files..."
+        cp -r ../* . 
+        echo "Checking buildozer.spec file..."
+        cat buildozer.spec
+        echo "Starting build with debug output..."
+        buildozer android debug --verbose > ../build.log 2>&1
+        cd ..
         echo "=== BUILD LOG END ==="
+        echo "Listing files in current directory..."
+        ls -la
+        echo "Looking for bin directory..."
         ls -la bin/ || echo "bin directory not found"
+        echo "Searching for APK files..."
         find . -name "*.apk" -type f || echo "No APK files found"
+        echo "Checking if bin directory exists and is not empty..."
         if [ ! -d "bin" ] || [ -z "$(ls -A bin 2>/dev/null)" ]; then
           echo "ERROR: No APK generated"
+          echo "Build log content:"
           cat build.log
           exit 1
+        else
+          echo "Build successful, APK files found:"
+          ls -la bin/
         fi
     
     - name: Upload APK
