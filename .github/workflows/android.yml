@@ -30,27 +30,21 @@ jobs:
           autoconf automake libtool pkg-config \
           zlib1g-dev libncurses5-dev libncursesw5-dev \
           libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev \
-          libsdl2-ttf-dev
+          libsdl2-ttf-dev openjdk-8-jdk ant
     
     - name: Build APK
+      id: build_apk
       run: |
         echo "Starting build process..."
         echo "Current directory: $(pwd)"
         echo "Python version: $(python --version)"
         echo "Pip version: $(pip --version)"
         echo "Buildozer version: $(buildozer --version)"
-        echo "Creating temporary build directory..."
-        mkdir -p build_temp
-        cd build_temp
-        echo "Initializing buildozer..."
-        buildozer init
-        echo "Copying project files..."
-        cp -r ../* . 
+        # 直接在当前目录构建，不使用临时目录
         echo "Checking buildozer.spec file..."
         cat buildozer.spec
         echo "Starting build with debug output..."
-        buildozer android debug --verbose > ../build.log 2>&1
-        cd ..
+        buildozer android debug --verbose > build.log 2>&1
         echo "=== BUILD LOG END ==="
         echo "Listing files in current directory..."
         ls -la
@@ -79,4 +73,14 @@ jobs:
     
     - name: Show build log on failure
       if: failure()
-      run: cat build.log
+      run: |
+        echo "Build failed, checking for build.log..."
+        ls -la
+        if [ -f "build.log" ]; then
+          echo "Build log content:"
+          cat build.log
+        else
+          echo "ERROR: build.log not found"
+          echo "Current directory content:"
+          ls -la
+        fi
