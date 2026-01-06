@@ -35,6 +35,13 @@ jobs:
           libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev \
           libsdl2-ttf-dev openjdk-8-jdk ant
     
+    - name: Accept Android SDK licenses
+      run: |
+        # 接受所有Android SDK许可证
+        yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+        # 明确安装所需的构建工具版本
+        $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "build-tools;36.1.0" "platform-tools" "platforms;android-34"
+    
     - name: Configure Buildozer
       run: |
         # 配置使用系统已安装的ANT
