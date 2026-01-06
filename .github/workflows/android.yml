@@ -34,17 +34,49 @@ jobs:
           libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev \
           libsdl2-ttf-dev openjdk-8-jdk ant
     
-    - name: Configure Buildozer to use system Android SDK
+    - name: Configure Android SDK for python-for-android
       run: |
-        # 查看系统已安装的Android SDK
-        echo "System Android SDK path: $ANDROID_HOME"
-        echo "System Android NDK path: $ANDROID_NDK_HOME"
+        # 查看系统已安装的Android SDK结构
+        echo "=== Checking Android SDK structure ==="
+        ls -la $ANDROID_HOME
+        ls -la $ANDROID_HOME/cmdline-tools 2>/dev/null || echo "No cmdline-tools directory"
         
-        # 创建Buildozer配置目录
-        mkdir -p $HOME/.buildozer/android/platform
+        # 查找sdkmanager工具
+        SDKMANAGER_PATH=$(find $ANDROID_HOME -name "sdkmanager" 2>/dev/null || echo "Not found")
+        echo "Found sdkmanager at: $SDKMANAGER_PATH"
         
-        # 创建必要的目录结构
-        mkdir -p $HOME/.buildozer/android/platform/android-sdk/tools/bin
+        # 创建python-for-android期望的目录结构
+        mkdir -p $ANDROID_HOME/tools/bin
+        
+        # 链接sdkmanager到python-for-android期望的位置
+        if [ -f "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" ]; then
+          echo "Linking sdkmanager from cmdline-tools/latest/bin/"
+          ln -sf $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager $ANDROID_HOME/tools/bin/sdkmanager
+          ln -sf $ANDROID_HOME/cmdline-tools/latest/bin/avdmanager $ANDROID_HOME/tools/bin/avdmanager
+        elif [ -f "$ANDROID_HOME/cmdline-tools/bin/sdkmanager" ]; then
+          echo "Linking sdkmanager from cmdline-tools/bin/"
+          ln -sf $ANDROID_HOME/cmdline-tools/bin/sdkmanager $ANDROID_HOME/tools/bin/sdkmanager
+          ln -sf $ANDROID_HOME/cmdline-tools/bin/avdmanager $ANDROID_HOME/tools/bin/avdmanager
+        fi
+        
+        # 确保sdkmanager有执行权限
+        chmod +x $ANDROID_HOME/tools/bin/sdkmanager 2>/dev/null || true
+        
+        # 验证sdkmanager是否可用
+        echo "=== Verifying sdkmanager ==="
+        $ANDROID_HOME/tools/bin/sdkmanager --version 2>/dev/null || echo "sdkmanager not found at $ANDROID_HOME/tools/bin/sdkmanager"
+        
+        # 添加Android SDK工具到PATH
+        echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> $GITHUB_ENV
+        echo "PATH=$PATH:$ANDROID_HOME/tools/bin:$ANDROID_HOME/platform-tools" >> $GITHUB_ENV
+        
+        # 显示最终的配置
+        echo "=== Final Configuration ==="
+        echo "ANDROID_HOME: $ANDROID_HOME"
+        echo "ANDROID_SDK_ROOT: $ANDROID_SDK_ROOT"
+        echo "PATH: $PATH"
+        
+        # 创建Buildozer配置目录和必要结构
         mkdir -p $HOME/.buildozer/android/platform/android-sdk/licenses
         
         # 复制系统许可证文件
@@ -56,26 +88,10 @@ jobs:
         fi
         
         # 链接系统SDK工具到Buildozer期望的位置
-        ln -s $ANDROID_HOME/tools $HOME/.buildozer/android/platform/android-sdk/tools
-        ln -s $ANDROID_HOME/build-tools $HOME/.buildozer/android/platform/android-sdk/build-tools
-        ln -s $ANDROID_HOME/platform-tools $HOME/.buildozer/android/platform/android-sdk/platform-tools
-        ln -s $ANDROID_HOME/platforms $HOME/.buildozer/android/platform/android-sdk/platforms
-        
-        # 确保sdkmanager可用
-        if [ -f "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" ]; then
-          ln -s $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager $HOME/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager
-        else
-          # 如果没有找到sdkmanager，使用系统自带的
-          echo "Using system sdkmanager: $(which sdkmanager 2>/dev/null || echo 'Not found')"
-        fi
-        
-        # 设置执行权限
-        chmod +x $HOME/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager 2>/dev/null || true
-        
-        # 显示配置结果
-        echo "Buildozer SDK path: $HOME/.buildozer/android/platform/android-sdk"
-        echo "Buildozer SDK licenses: $HOME/.buildozer/android/platform/android-sdk/licenses/"
-        echo "sdkmanager path: $HOME/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager"
+        ln -sf $ANDROID_HOME/tools $HOME/.buildozer/android/platform/android-sdk/tools
+        ln -sf $ANDROID_HOME/build-tools $HOME/.buildozer/android/platform/android-sdk/build-tools
+        ln -sf $ANDROID_HOME/platform-tools $HOME/.buildozer/android/platform/android-sdk/platform-tools
+        ln -sf $ANDROID_HOME/platforms $HOME/.buildozer/android/platform/android-sdk/platforms
     
     - name: Build APK
       run: |
