@@ -46,8 +46,10 @@ jobs:
         ls -la
         
         echo "Building APK..."
+        set +e  # 允许命令失败，继续执行后续脚本
         buildozer android debug --verbose > build.log 2>&1
         BUILD_EXIT_CODE=$?
+        set -e  # 恢复错误检查
         
         echo "=== BUILD END ==="
         echo "Build exit code: $BUILD_EXIT_CODE"
