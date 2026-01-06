@@ -9,15 +9,17 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
     
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.11'
     
-    - name: Install dependencies
+    - name: Install Python dependencies
       run: |
+        pip install --upgrade pip
         pip install buildozer==1.5.0
         pip install kivy==2.2.1
         pip install cython
@@ -33,33 +35,33 @@ jobs:
           libsdl2-ttf-dev openjdk-8-jdk ant
     
     - name: Build APK
-      id: build_apk
       run: |
-        echo "Starting build process..."
+        echo "=== BUILD START ==="
         echo "Current directory: $(pwd)"
         echo "Python version: $(python --version)"
-        echo "Pip version: $(pip --version)"
         echo "Buildozer version: $(buildozer --version)"
+        
         # 直接在当前目录构建，不使用临时目录
-        echo "Checking buildozer.spec file..."
-        cat buildozer.spec
-        echo "Starting build with debug output..."
-        buildozer android debug --verbose > build.log 2>&1
-        echo "=== BUILD LOG END ==="
-        echo "Listing files in current directory..."
+        echo "Checking current directory structure..."
         ls -la
-        echo "Looking for bin directory..."
+        
+        echo "Building APK..."
+        buildozer android debug --verbose > build.log 2>&1
+        
+        echo "=== BUILD END ==="
+        echo "Checking build results..."
+        ls -la
         ls -la bin/ || echo "bin directory not found"
-        echo "Searching for APK files..."
         find . -name "*.apk" -type f || echo "No APK files found"
-        echo "Checking if bin directory exists and is not empty..."
+        
+        # 检查是否生成了APK
         if [ ! -d "bin" ] || [ -z "$(ls -A bin 2>/dev/null)" ]; then
-          echo "ERROR: No APK generated"
-          echo "Build log content:"
+          echo "ERROR: No APK generated!"
+          echo "=== BUILD LOG ==="
           cat build.log
           exit 1
         else
-          echo "Build successful, APK files found:"
+          echo "SUCCESS: APK generated successfully!"
           ls -la bin/
         fi
     
@@ -68,19 +70,17 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: lingbiao-mobile-debug.apk
-        path: bin/
+        path: bin/*.apk
         retention-days: 5
     
     - name: Show build log on failure
       if: failure()
       run: |
-        echo "Build failed, checking for build.log..."
-        ls -la
+        echo "=== BUILD FAILURE LOG ==="
         if [ -f "build.log" ]; then
-          echo "Build log content:"
           cat build.log
         else
-          echo "ERROR: build.log not found"
+          echo "build.log not found!"
           echo "Current directory content:"
           ls -la
         fi
