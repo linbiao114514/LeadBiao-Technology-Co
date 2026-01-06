@@ -16,6 +16,7 @@ android.permissions = INTERNET,ACCESS_NETWORK_STATE,SYSTEM_ALERT_WINDOW
 android.api_31_android = True
 android.enable_androidx = True
 android.use_legacy_gradle_env = True
+android.ant_path = /usr/share/ant
 
 [buildozer]
 log_level = 2
