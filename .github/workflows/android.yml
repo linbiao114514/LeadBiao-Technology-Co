@@ -34,50 +34,48 @@ jobs:
           libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev \
           libsdl2-ttf-dev openjdk-8-jdk ant
     
-    - name: Install Android SDK and Build Tools
+    - name: Configure Buildozer to use system Android SDK
       run: |
-        # 下载Android SDK Command Line Tools
-        mkdir -p $HOME/android-sdk
-        cd $HOME/android-sdk
-        wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
-        unzip -q commandlinetools-linux-9477386_latest.zip
+        # 查看系统已安装的Android SDK
+        echo "System Android SDK path: $ANDROID_HOME"
+        echo "System Android NDK path: $ANDROID_NDK_HOME"
         
-        # 创建许可证目录
-        mkdir -p licenses
-        echo "24333f8a63b6825ea9c5514f83c2829b004d1fee" > licenses/android-sdk-license
+        # 创建Buildozer配置目录
+        mkdir -p $HOME/.buildozer/android/platform
         
-        # 设置ANDROID_SDK_ROOT环境变量
-        export ANDROID_SDK_ROOT=$HOME/android-sdk
-        
-        # 安装Android Build Tools和平台工具
-        $HOME/android-sdk/cmdline-tools/bin/sdkmanager --sdk_root=$ANDROID_SDK_ROOT --install "build-tools;36.0.0" "platform-tools" "platforms;android-31" > /dev/null 2>&1 || true
-        
-        # 创建Buildozer期望的SDK目录结构
+        # 创建必要的目录结构
         mkdir -p $HOME/.buildozer/android/platform/android-sdk/tools/bin
-        mkdir -p $HOME/.buildozer/android/platform/android-sdk/build-tools/36.0.0
-        mkdir -p $HOME/.buildozer/android/platform/android-sdk/platform-tools
-        mkdir -p $HOME/.buildozer/android/platform/android-sdk/platforms
+        mkdir -p $HOME/.buildozer/android/platform/android-sdk/licenses
         
-        # 复制sdkmanager到Buildozer期望的位置
-        cp $HOME/android-sdk/cmdline-tools/bin/sdkmanager $HOME/.buildozer/android/platform/android-sdk/tools/bin/
-        chmod +x $HOME/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager
+        # 复制系统许可证文件
+        if [ -d "$ANDROID_HOME/licenses" ]; then
+          cp -r $ANDROID_HOME/licenses/* $HOME/.buildozer/android/platform/android-sdk/licenses/
+        else
+          # 创建许可证文件
+          echo "sdk.license=24333f8a63b6825ea9c5514f83c2829b004d1fee" > $HOME/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
+        fi
         
-        # 复制build-tools到Buildozer期望的位置
-        cp -r $ANDROID_SDK_ROOT/build-tools/36.0.0/* $HOME/.buildozer/android/platform/android-sdk/build-tools/36.0.0/
+        # 链接系统SDK工具到Buildozer期望的位置
+        ln -s $ANDROID_HOME/tools $HOME/.buildozer/android/platform/android-sdk/tools
+        ln -s $ANDROID_HOME/build-tools $HOME/.buildozer/android/platform/android-sdk/build-tools
+        ln -s $ANDROID_HOME/platform-tools $HOME/.buildozer/android/platform/android-sdk/platform-tools
+        ln -s $ANDROID_HOME/platforms $HOME/.buildozer/android/platform/android-sdk/platforms
         
-        # 复制platform-tools和platforms
-        cp -r $ANDROID_SDK_ROOT/platform-tools/* $HOME/.buildozer/android/platform/android-sdk/platform-tools/
-        cp -r $ANDROID_SDK_ROOT/platforms/* $HOME/.buildozer/android/platform/android-sdk/platforms/
+        # 确保sdkmanager可用
+        if [ -f "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" ]; then
+          ln -s $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager $HOME/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager
+        else
+          # 如果没有找到sdkmanager，使用系统自带的
+          echo "Using system sdkmanager: $(which sdkmanager 2>/dev/null || echo 'Not found')"
+        fi
         
-        # 显示安装结果
-        echo "Android SDK安装完成"
-        echo "sdkmanager位置: $HOME/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager"
-        echo "build-tools位置: $HOME/.buildozer/android/platform/android-sdk/build-tools/36.0.0/"
-        echo "platform-tools位置: $HOME/.buildozer/android/platform/android-sdk/platform-tools/"
+        # 设置执行权限
+        chmod +x $HOME/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager 2>/dev/null || true
         
-        # 确保环境变量在后续步骤中可用
-        echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> $GITHUB_ENV
-        echo "PATH=$PATH:$HOME/android-sdk/build-tools/36.0.0" >> $GITHUB_ENV
+        # 显示配置结果
+        echo "Buildozer SDK path: $HOME/.buildozer/android/platform/android-sdk"
+        echo "Buildozer SDK licenses: $HOME/.buildozer/android/platform/android-sdk/licenses/"
+        echo "sdkmanager path: $HOME/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager"
     
     - name: Build APK
       run: |
