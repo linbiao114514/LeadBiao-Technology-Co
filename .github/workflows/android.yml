@@ -23,6 +23,7 @@ jobs:
         pip install buildozer==1.5.0
         pip install kivy==2.2.1
         pip install cython
+        pip install python-for-android
     
     - name: Install system dependencies
       run: |
@@ -34,77 +35,37 @@ jobs:
           libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev \
           libsdl2-ttf-dev openjdk-8-jdk ant
     
-    - name: Configure Android SDK for python-for-android
+    - name: Configure Buildozer
       run: |
-        # 查看系统已安装的Android SDK结构
-        echo "=== Checking Android SDK structure ==="
-        ls -la $ANDROID_HOME
-        ls -la $ANDROID_HOME/cmdline-tools 2>/dev/null || echo "No cmdline-tools directory"
-        
-        # 查找sdkmanager工具
-        SDKMANAGER_PATH=$(find $ANDROID_HOME -name "sdkmanager" 2>/dev/null || echo "Not found")
-        echo "Found sdkmanager at: $SDKMANAGER_PATH"
-        
-        # 创建python-for-android期望的目录结构
-        mkdir -p $ANDROID_HOME/tools/bin
-        
-        # 链接sdkmanager到python-for-android期望的位置
-        if [ -f "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" ]; then
-          echo "Linking sdkmanager from cmdline-tools/latest/bin/"
-          ln -sf $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager $ANDROID_HOME/tools/bin/sdkmanager
-          ln -sf $ANDROID_HOME/cmdline-tools/latest/bin/avdmanager $ANDROID_HOME/tools/bin/avdmanager
-        elif [ -f "$ANDROID_HOME/cmdline-tools/bin/sdkmanager" ]; then
-          echo "Linking sdkmanager from cmdline-tools/bin/"
-          ln -sf $ANDROID_HOME/cmdline-tools/bin/sdkmanager $ANDROID_HOME/tools/bin/sdkmanager
-          ln -sf $ANDROID_HOME/cmdline-tools/bin/avdmanager $ANDROID_HOME/tools/bin/avdmanager
-        fi
-        
-        # 确保sdkmanager有执行权限
-        chmod +x $ANDROID_HOME/tools/bin/sdkmanager 2>/dev/null || true
-        
-        # 验证sdkmanager是否可用
-        echo "=== Verifying sdkmanager ==="
-        $ANDROID_HOME/tools/bin/sdkmanager --version 2>/dev/null || echo "sdkmanager not found at $ANDROID_HOME/tools/bin/sdkmanager"
-        
-        # 添加Android SDK工具到PATH
-        echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> $GITHUB_ENV
-        echo "PATH=$PATH:$ANDROID_HOME/tools/bin:$ANDROID_HOME/platform-tools" >> $GITHUB_ENV
-        
-        # 显示最终的配置
-        echo "=== Final Configuration ==="
-        echo "ANDROID_HOME: $ANDROID_HOME"
-        echo "ANDROID_SDK_ROOT: $ANDROID_SDK_ROOT"
-        echo "PATH: $PATH"
-        
-        # 创建Buildozer配置目录和必要结构
-        mkdir -p $HOME/.buildozer/android/platform/android-sdk/licenses
-        
-        # 复制系统许可证文件
-        if [ -d "$ANDROID_HOME/licenses" ]; then
-          cp -r $ANDROID_HOME/licenses/* $HOME/.buildozer/android/platform/android-sdk/licenses/
-        else
-          # 创建许可证文件
-          echo "sdk.license=24333f8a63b6825ea9c5514f83c2829b004d1fee" > $HOME/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
-        fi
-        
-        # 链接系统SDK工具到Buildozer期望的位置
-        ln -sf $ANDROID_HOME/tools $HOME/.buildozer/android/platform/android-sdk/tools
-        ln -sf $ANDROID_HOME/build-tools $HOME/.buildozer/android/platform/android-sdk/build-tools
-        ln -sf $ANDROID_HOME/platform-tools $HOME/.buildozer/android/platform/android-sdk/platform-tools
-        ln -sf $ANDROID_HOME/platforms $HOME/.buildozer/android/platform/android-sdk/platforms
+        # 配置使用系统已安装的ANT
+        echo "android.ant_path = /usr/share/ant" >> buildozer.spec
+        # 配置使用系统NDK，避免下载
+        echo "android.ndk_path = $ANDROID_NDK_HOME" >> buildozer.spec
+        # 配置使用系统SDK，避免下载
+        echo "android.sdk_path = $ANDROID_HOME" >> buildozer.spec
     
-    - name: Build APK
+    - name: Clean previous builds
+      run: |
+        echo "Cleaning previous builds..."
+        rm -rf .buildozer bin
+    
+    - name: Build with Buildozer
       run: |
         echo "=== BUILD START ==="
         echo "Current directory: $(pwd)"
         echo "Python version: $(python --version)"
         echo "Buildozer version: $(buildozer --version)"
         
-        # 直接在当前目录构建
-        echo "Building APK with verbose output..."
+        # 显示环境变量
+        echo "ANDROID_HOME: $ANDROID_HOME"
+        echo "ANDROID_NDK_HOME: $ANDROID_NDK_HOME"
+        echo "ANT_HOME: $ANT_HOME"
         
-        # 显示构建过程中的所有输出
-        buildozer android debug --verbose
+        # 创建必要的目录
+        mkdir -p .buildozer/android/platform
+        
+        # 运行Buildozer构建，增加超时和详细输出
+        timeout 30m buildozer android debug --verbose
         
         echo "=== BUILD END ==="
         
@@ -113,6 +74,9 @@ jobs:
         ls -la
         ls -la bin/ || echo "bin directory not found"
         find . -name "*.apk" -type f || echo "No APK files found"
+        
+        # 显示构建日志
+        cat .buildozer/android/build.log 2>/dev/null || echo "No build log found"
         
         # 检查是否生成了APK
         if [ -d "bin" ] && [ -n "$(ls -A bin 2>/dev/null)" ]; then
@@ -130,15 +94,3 @@ jobs:
         name: lingbiao-mobile-debug.apk
         path: bin/*.apk
         retention-days: 5
-    
-    - name: Show build log on failure
-      if: failure()
-      run: |
-        echo "=== BUILD FAILURE LOG ==="
-        if [ -f "build.log" ]; then
-          cat build.log
-        else
-          echo "build.log not found!"
-          echo "Current directory content:"
-          ls -la
-        fi

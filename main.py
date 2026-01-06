@@ -11,10 +11,12 @@ from kivy.clock import Clock
 from kivy.utils import get_color_from_hex
 from kivy.properties import StringProperty
 
+# 确保在移动设备上能正确导入
+FloatingWidget = None
 try:
     from mobile_app.widgets.floating import FloatingWidget
 except ImportError:
-    FloatingWidget = None
+    pass
 
 
 Window.size = (360, 640)
