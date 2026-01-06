@@ -36,13 +36,20 @@ jobs:
     
     - name: Accept Android SDK licenses
       run: |
+        # 创建正确的许可证目录结构
+        mkdir -p $HOME/.buildozer/android/licenses
+        
+        # 写入Android SDK许可证文件
+        echo "sdk.license=24333f8a63b6825ea9c5514f83c2829b004d1fee" > $HOME/.buildozer/android/licenses/android-sdk-license
+        echo "d56f5187479451eabf01fb78af6dfcb131a6481e" >> $HOME/.buildozer/android/licenses/android-sdk-license
+        echo "24333f8a63b6825ea9c5514f83c2829b004d1fee" >> $HOME/.buildozer/android/licenses/android-sdk-license
+        echo "android-googletv-license-7567" > $HOME/.buildozer/android/licenses/android-sdk-googletv-license
+        echo "e9acab5b5fbb560a72cfaecce8946896ff6aab9d" > $HOME/.buildozer/android/licenses/mips-android-sysimage-license
+        echo "d975f751698a77b662f1254ddbeed3901e976f5a" > $HOME/.buildozer/android/licenses/intel-android-extra-license
+        
+        # 确保Buildozer可以访问许可证
         mkdir -p $HOME/.android
-        echo "sdk.license=24333f8a63b6825ea9c5514f83c2829b004d1fee" > $HOME/android/licenses/android-sdk-license
-        echo "d56f5187479451eabf01fb78af6dfcb131a6481e" >> $HOME/android/licenses/android-sdk-license
-        echo "24333f8a63b6825ea9c5514f83c2829b004d1fee" >> $HOME/android/licenses/android-sdk-license
-        echo "android-googletv-license-7567" > $HOME/android/licenses/android-sdk-googletv-license
-        echo "e9acab5b5fbb560a72cfaecce8946896ff6aab9d" > $HOME/android/licenses/mips-android-sysimage-license
-        echo "d975f751698a77b662f1254ddbeed3901e976f5a" > $HOME/android/licenses/intel-android-extra-license
+        echo "yes" | sdkmanager --licenses > /dev/null 2>&1 || true
     
     - name: Build APK
       run: |
