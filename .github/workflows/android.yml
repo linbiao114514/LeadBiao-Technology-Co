@@ -50,6 +50,11 @@ jobs:
         echo "android.ndk_path = $ANDROID_NDK_HOME" >> buildozer.spec
         # 配置使用系统SDK，避免下载
         echo "android.sdk_path = $ANDROID_HOME" >> buildozer.spec
+        # 禁用Buildozer的SDK自动管理
+        echo "android.skip_update = True" >> buildozer.spec
+        echo "android.accept_sdk_license = True" >> buildozer.spec
+        # 配置使用系统构建工具
+        echo "android.build_tools_version = 36.1.0" >> buildozer.spec
     
     - name: Clean previous builds
       run: |
@@ -68,11 +73,17 @@ jobs:
         echo "ANDROID_NDK_HOME: $ANDROID_NDK_HOME"
         echo "ANT_HOME: $ANT_HOME"
         
-        # 创建必要的目录
+        # 创建符号链接，将系统SDK链接到Buildozer期望的位置
         mkdir -p .buildozer/android/platform
+        ln -sf $ANDROID_HOME .buildozer/android/platform/android-sdk
+        ln -sf $ANDROID_NDK_HOME .buildozer/android/platform/android-ndk
         
-        # 运行Buildozer构建，增加超时和详细输出
-        timeout 30m buildozer android debug --verbose
+        # 检查构建工具是否存在
+        echo "Checking build tools..."
+        ls -la $ANDROID_HOME/build-tools/36.1.0
+        
+        # 运行Buildozer构建，增加超时和详细输出，禁用SDK更新
+        timeout 30m buildozer android debug --verbose --no-update-sdk
         
         echo "=== BUILD END ==="
         
