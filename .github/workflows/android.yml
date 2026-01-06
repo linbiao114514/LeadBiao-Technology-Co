@@ -100,35 +100,27 @@ jobs:
         echo "Python version: $(python --version)"
         echo "Buildozer version: $(buildozer --version)"
         
-        # 直接在当前目录构建，不使用临时目录
-        echo "Checking current directory structure..."
-        ls -la
+        # 直接在当前目录构建
+        echo "Building APK with verbose output..."
         
-        echo "Building APK..."
-        set +e  # 允许命令失败，继续执行后续脚本
-        buildozer android debug --verbose > build.log 2>&1
-        BUILD_EXIT_CODE=$?
-        set -e  # 恢复错误检查
+        # 显示构建过程中的所有输出
+        buildozer android debug --verbose
         
         echo "=== BUILD END ==="
-        echo "Build exit code: $BUILD_EXIT_CODE"
         
-        # 无论构建结果如何，都显示构建日志
-        echo "=== BUILD LOG ==="
-        cat build.log
-        
-        echo "Checking build results..."
+        # 检查构建结果
+        echo "=== Checking Build Results ==="
         ls -la
         ls -la bin/ || echo "bin directory not found"
         find . -name "*.apk" -type f || echo "No APK files found"
         
         # 检查是否生成了APK
-        if [ ! -d "bin" ] || [ -z "$(ls -A bin 2>/dev/null)" ]; then
-          echo "ERROR: No APK generated!"
-          exit 1
-        else
+        if [ -d "bin" ] && [ -n "$(ls -A bin 2>/dev/null)" ]; then
           echo "SUCCESS: APK generated successfully!"
           ls -la bin/
+        else
+          echo "ERROR: No APK generated!"
+          exit 1
         fi
     
     - name: Upload APK
