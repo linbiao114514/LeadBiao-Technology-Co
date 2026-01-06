@@ -47,8 +47,15 @@ jobs:
         
         echo "Building APK..."
         buildozer android debug --verbose > build.log 2>&1
+        BUILD_EXIT_CODE=$?
         
         echo "=== BUILD END ==="
+        echo "Build exit code: $BUILD_EXIT_CODE"
+        
+        # 无论构建结果如何，都显示构建日志
+        echo "=== BUILD LOG ==="
+        cat build.log
+        
         echo "Checking build results..."
         ls -la
         ls -la bin/ || echo "bin directory not found"
@@ -57,8 +64,6 @@ jobs:
         # 检查是否生成了APK
         if [ ! -d "bin" ] || [ -z "$(ls -A bin 2>/dev/null)" ]; then
           echo "ERROR: No APK generated!"
-          echo "=== BUILD LOG ==="
-          cat build.log
           exit 1
         else
           echo "SUCCESS: APK generated successfully!"
