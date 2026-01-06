@@ -34,22 +34,45 @@ jobs:
           libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev \
           libsdl2-ttf-dev openjdk-8-jdk ant
     
-    - name: Accept Android SDK licenses
+    - name: Install Android SDK and Build Tools
       run: |
-        # 创建正确的许可证目录结构
-        mkdir -p $HOME/.buildozer/android/licenses
+        # 下载Android SDK Command Line Tools
+        mkdir -p $HOME/android-sdk
+        cd $HOME/android-sdk
+        wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
+        unzip -q commandlinetools-linux-9477386_latest.zip
         
-        # 写入Android SDK许可证文件
-        echo "sdk.license=24333f8a63b6825ea9c5514f83c2829b004d1fee" > $HOME/.buildozer/android/licenses/android-sdk-license
-        echo "d56f5187479451eabf01fb78af6dfcb131a6481e" >> $HOME/.buildozer/android/licenses/android-sdk-license
-        echo "24333f8a63b6825ea9c5514f83c2829b004d1fee" >> $HOME/.buildozer/android/licenses/android-sdk-license
-        echo "android-googletv-license-7567" > $HOME/.buildozer/android/licenses/android-sdk-googletv-license
-        echo "e9acab5b5fbb560a72cfaecce8946896ff6aab9d" > $HOME/.buildozer/android/licenses/mips-android-sysimage-license
-        echo "d975f751698a77b662f1254ddbeed3901e976f5a" > $HOME/.buildozer/android/licenses/intel-android-extra-license
+        # 创建许可证目录
+        mkdir -p licenses
+        echo "24333f8a63b6825ea9c5514f83c2829b004d1fee" > licenses/android-sdk-license
         
-        # 确保Buildozer可以访问许可证
-        mkdir -p $HOME/.android
-        echo "yes" | sdkmanager --licenses > /dev/null 2>&1 || true
+        # 设置ANDROID_SDK_ROOT环境变量
+        export ANDROID_SDK_ROOT=$HOME/android-sdk
+        
+        # 安装Android Build Tools
+        $HOME/android-sdk/cmdline-tools/bin/sdkmanager --sdk_root=$ANDROID_SDK_ROOT --install "build-tools;36.0.0" "platform-tools" "platforms;android-31" > /dev/null 2>&1 || true
+        
+        # 确保Aidl工具可用
+        if [ -f "$ANDROID_SDK_ROOT/build-tools/36.0.0/aidl" ]; then
+          echo "Aidl工具已找到: $ANDROID_SDK_ROOT/build-tools/36.0.0/aidl"
+          # 添加到PATH
+          export PATH=$PATH:$ANDROID_SDK_ROOT/build-tools/36.0.0
+          # 复制到Buildozer期望的位置
+          mkdir -p $HOME/.buildozer/android/platform/android-sdk/build-tools/36.0.0
+          cp -r $ANDROID_SDK_ROOT/build-tools/36.0.0/* $HOME/.buildozer/android/platform/android-sdk/build-tools/36.0.0/
+        else
+          echo "ERROR: Aidl工具未找到"
+          ls -la $ANDROID_SDK_ROOT/build-tools/ || echo "build-tools目录不存在"
+        fi
+        
+        # 显示安装结果
+        echo "Android SDK安装目录: $ANDROID_SDK_ROOT"
+        echo "build-tools目录内容:"
+        ls -la $ANDROID_SDK_ROOT/build-tools/ || echo "build-tools目录不存在"
+        
+        # 确保环境变量在后续步骤中可用
+        echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> $GITHUB_ENV
+        echo "PATH=$PATH:$HOME/android-sdk/build-tools/36.0.0" >> $GITHUB_ENV
     
     - name: Build APK
       run: |
